@@ -33,20 +33,9 @@ It implements a population-normalized Resource Density Index (RDI), constructs c
 
 This project targets **Python 3.12+** and uses **uv** for dependency management.
 
-- **Using `uv` (recommended)**:
-
 ```bash
 cd /path/to/repo
 uv sync
-```
-
-- **Using `pip`** (without lockfile guarantees):
-
-```bash
-cd /path/to/repo
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
 ```
 
 ### Basic usage
@@ -86,8 +75,7 @@ To re-run the full pipeline from scratch, the overall workflow is:
 
 ### Environment and secrets
 
-Some steps (in particular Semantic Scholar queries and any LLM-assisted annotation you choose to re-run) require API keys.
-Create a `secrets.env` file in this directory and export the relevant environment variables before running the scripts.
+Some steps (in particular Semantic Scholar queries) may require API keys.
 Secrets and private configuration are not committed; users are responsible for their own credentials and for complying with API usage policies.
 
 ### Citation
