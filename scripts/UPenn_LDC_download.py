@@ -35,7 +35,7 @@ def load_progress():
             with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"无法加载进度文件: {e}")
+            print(f"Failed to load progress file: {e}")
     return None
 
 def extract_dataset_metadata(dataset_url, max_retries=3):
@@ -104,23 +104,22 @@ try:
     if ENABLE_RESUME:
         existing_progress = load_progress()
         if existing_progress:
-            print("发现现有的进度文件。")
-            print(f"已处理: {existing_progress['processed_count']}/{existing_progress['total_datasets']}")
-            print(f"上次保存时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(existing_progress['timestamp']))}")
+            print("Existing progress file found.")
+            print(f"Processed: {existing_progress['processed_count']}/{existing_progress['total_datasets']}")
+            print(f"Last saved at: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(existing_progress['timestamp']))}")
 
-            choice = input("是否要继续上次的进度? (y/n): ").lower().strip()
+            choice = input("Continue from last progress? (y/n): ").lower().strip()
             if choice == 'y':
-                print("继续上次的进度...")
+                print("Continuing from last progress...")
                 start_index = existing_progress['processed_count']
                 existing_metadata = existing_progress.get('metadata', [])
-                print(f"从第 {start_index + 1} 个数据集开始处理...")
+                print(f"Starting from dataset index {start_index + 1}...")
             else:
-                print("重新开始...")
+                print("Starting over...")
                 if os.path.exists(PROGRESS_FILE):
                     os.remove(PROGRESS_FILE)
 
     page = requests.get(URL)
-    # 如果请求失败（例如404或500错误），则会引发异常
     page.raise_for_status()
 
     soup = BeautifulSoup(page.content, "html.parser")
@@ -161,14 +160,14 @@ try:
                         total_datasets += 1
 
                         if MAX_DATASETS and total_datasets >= MAX_DATASETS:
-                            print(f"已达到最大数据集数量限制: {MAX_DATASETS}")
+                            print(f"Reached maximum dataset limit: {MAX_DATASETS}")
                             break
 
             if MAX_DATASETS and total_datasets >= MAX_DATASETS:
                 break
 
-    print(f"找到 {total_datasets} 个数据集，开始收集元数据...")
-    print("这可能需要一些时间，请耐心等待...")
+    print(f"Found {total_datasets} datasets, starting metadata collection...")
+    print("This may take some time, please wait...")
 
 
     all_metadata = existing_metadata.copy()
@@ -180,7 +179,7 @@ try:
         dataset_info = all_datasets_info[i]
 
         percent = ((i + 1) / total_datasets) * 100
-        print(f"\r进度: [{i+1:4d}/{total_datasets:4d}] ({percent:5.1f}%) - 处理: {dataset_info['Title'][:50]}...")
+        print(f"\rProgress: [{i+1:4d}/{total_datasets:4d}] ({percent:5.1f}%) - Processing: {dataset_info['Title'][:50]}...", end="")
 
         metadata = extract_dataset_metadata(dataset_info['URL'])
 
@@ -202,13 +201,13 @@ try:
 
         if (i + 1) % 10 == 0:
             save_progress(all_datasets_info, processed_indices, all_metadata)
-            print(f"\r进度: [{i+1:4d}/{total_datasets:4d}] ({percent:5.1f}%) - 已保存进度")
+            print(f"\rProgress: [{i+1:4d}/{total_datasets:4d}] ({percent:5.1f}%) - Progress saved")
 
         if i < total_datasets - 1 and DELAY_BETWEEN_REQUESTS > 0:
             time.sleep(DELAY_BETWEEN_REQUESTS)
 
-    print(f"\r进度: [{total_datasets:4d}/{total_datasets:4d}] (100.0%)")
-    print(f"\n元数据收集完成: 成功 {success_count}, 失败 {error_count}")
+    print(f"\rProgress: [{total_datasets:4d}/{total_datasets:4d}] (100.0%)")
+    print(f"\nMetadata collection completed: success {success_count}, failed {error_count}")
 
     if ENABLE_RESUME:
         save_progress(all_datasets_info, list(range(total_datasets)), all_metadata)
@@ -228,22 +227,22 @@ try:
 
         output_file = "/mlde/ll/ldc_datasets_metadata.csv"
         df.to_csv(output_file, index=False, encoding='utf-8')
-        print(f"\n元数据表格已保存到: {output_file}")
-        print(f"共收集了 {len(all_metadata)} 个数据集的元数据")
+        print(f"\nMetadata CSV saved to: {output_file}")
+        print(f"Collected metadata for {len(all_metadata)} datasets")
 
-        print("\n--- 数据预览 ---")
+        print("\n--- Data preview ---")
         print(df.head())
 
-        print("\n--- 统计信息 ---")
-        print(f"年份范围: {df['Year'].min()} - {df['Year'].max()}")
-        print(f"语言数量: {df['Language(s)'].nunique()} 种独特语言")
-        print(f"项目数量: {df['Project(s)'].nunique()} 个独特项目")
+        print("\n--- Statistics ---")
+        print(f"Year range: {df['Year'].min()} - {df['Year'].max()}")
+        print(f"Number of unique languages: {df['Language(s)'].nunique()}")
+        print(f"Number of unique projects: {df['Project(s)'].nunique()}")
 
     else:
-        print("未能收集到任何元数据")
+        print("No metadata could be collected")
 
 
 except requests.exceptions.RequestException as e:
-    print(f"错误：无法访问URL。请检查您的网络连接。 ({e})")
+    print(f"Error: unable to access URL. Please check your network connection. ({e})")
 except Exception as e:
-    print(f"处理过程中发生未知错误: {e}")
+    print(f"Unexpected error during processing: {e}")
